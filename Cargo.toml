@@ -32,7 +32,6 @@ panic-probe = { version = "0.3.1", features = ["print-defmt"] }
 nrf-softdevice = { version = "0.1.0", features = [
     "defmt",
     "ble-peripheral",
-    # "ble-central",
     "critical-section-impl",
     "nrf52840",
     "s140",
