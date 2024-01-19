@@ -7,5 +7,5 @@ MEMORY
   /* Flash: 156.0kB(0x27000 bytes). */
   /* RAMのLENGTHは128KBになっているが、実際には256KBある。 本来は256K-(SoftDeviceの使用量)とするべき*/  
   FLASH : ORIGIN = 0x00000000+156K, LENGTH = 1024K - 156K
-  RAM : ORIGIN = 0x20007b08, LENGTH = 128K                 
+  RAM : ORIGIN = 0x20007b08, LENGTH = 256K-0x7b08
 }
