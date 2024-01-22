@@ -10,10 +10,9 @@ nRF52840とEmbassyを使うBLEのサンプル。
 
 nRF52840使用BLEマイコンボードはSWDのピンヘッダーにハンダ付けしてJ-Linkと接続します。
 
-
 ## 環境構築
 
-Rustはすでにインストールされているものとします。　　
+Rustはすでにインストールされているものとします。  
 
 最新のRustにアップデート。  
 `rustup update`
@@ -37,7 +36,6 @@ Flashの消去。
 SoftDeviceの書き込み  
 `probe-rs download --chip nrf52840 --format hex s140_nrf52_7.3.0_softdevice.hex`
 
-
 ## Run
 
 以下のコマンドで実行します。  
@@ -52,7 +50,6 @@ BatteryLevelなどが表示されていることを確認します。nRF52840使
 
 <img src="https://github.com/AkiyukiOkayasu/nrf52840_ble/assets/6957368/dc2c0cb6-d70a-42e2-8644-67456c05b39a" width="320px">
 
-
 ## 参考
 
 ### SoftDeviceとメモリマップ
@@ -64,14 +61,10 @@ SoftDevice S140 v7.3.0（s140_nrf52_7.3.0_release-notes.pdf）では、　　
 > • Flash: 156.0 kB (0x27000 bytes).
 
 と記載がありますので、memory.xのFlashのORIGINをその分オフセットし、LENGTHをその分縮めています。
-https://github.com/AkiyukiOkayasu/nrf52840_ble/blob/8d3d7c34e4d218fab91a25ef6be197e3c2793fbb/memory.x#L4-L8
+<https://github.com/AkiyukiOkayasu/nrf52840_ble/blob/8d3d7c34e4d218fab91a25ef6be197e3c2793fbb/memory.x#L4-L8>
 
 RAMの使用量は起動時にprintされるので、それに従って設定します。
 
 ### Example
 
 Embassy公式のsoftdeviceの[Example](https://github.com/embassy-rs/nrf-softdevice/blob/master/examples/src/bin/ble_bas_peripheral.rs)もあります。このリポジトリはそれを整理し、簡素化したものです。
-
-
-
-
