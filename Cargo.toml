@@ -39,7 +39,11 @@ nrf-softdevice = { version = "0.1.0", features = [
 ] }
 nrf-softdevice-s140 = "0.1.1"
 
-# defmtの<invalid location: defmt frame-index: xxx>といったエラーを抑制するためにdebugレベルを上げる。
-# 最終的な製品リリース時にはdebugレベルを下げた方がいいかもしれない。
 [profile.release]
+# defmtの<invalid location: defmt frame-index: xxx>といったエラーを抑制するためにdebugレベルを上げる。
+# 最終的な製品リリース時にはdebug = falseにすると良い。
 debug = 2
+lto = true
+opt-level = "s"
+incremental = false
+codegen-units = 1
