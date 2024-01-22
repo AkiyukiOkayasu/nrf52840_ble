@@ -46,7 +46,12 @@ SoftDeviceの書き込み
 [LightBlue](https://punchthrough.com/lightblue/)などのアプリを用いて、BLE接続します。  
 デバイス名はHelloRustです。  
 
-BatteryLevelなどの表示されていることを確認します。  
+![IMG_7748](https://github.com/AkiyukiOkayasu/nrf52840_ble/assets/6957368/dd3b86b6-4a69-46b8-8a9b-b510f27c1f04)
+
+BatteryLevelなどが表示されていることを確認します。nRF52840使用BLEマイコンボードにはバッテリーが無いので、ダミーの値（80%）を表示しています。  
+
+![IMG_7749](https://github.com/AkiyukiOkayasu/nrf52840_ble/assets/6957368/dc2c0cb6-d70a-42e2-8644-67456c05b39a)
+
 
 ## 参考
 
