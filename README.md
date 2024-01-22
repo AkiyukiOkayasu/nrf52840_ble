@@ -60,8 +60,10 @@ BatteryLevelなどが表示されていることを確認します。nRF52840使
 SoftDeviceはFlashの先頭に書き込まれ、Rustプログラムはその後ろに書き込まれます。そのためのSoftDeviceが使用するFlashの量を確認し、memory.xのFlashの先頭をその分オフセットします。  
 ダウンロードしたSoftDeviceのリリースノートを確認してFlashの量を確認します。  
 SoftDevice S140 v7.3.0（s140_nrf52_7.3.0_release-notes.pdf）では、　　
+
 > • Flash: 156.0 kB (0x27000 bytes).
-と記載がありますので、memory.xのFlash位置をその分オフセットし、LENGTHのその分縮めています。
+
+と記載がありますので、memory.xのFlashのORIGINをその分オフセットし、LENGTHをその分縮めています。
 https://github.com/AkiyukiOkayasu/nrf52840_ble/blob/8d3d7c34e4d218fab91a25ef6be197e3c2793fbb/memory.x#L4-L8
 
 RAMの使用量は起動時にprintされるので、それに従って設定します。
