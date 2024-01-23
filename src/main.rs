@@ -132,8 +132,8 @@ async fn main(spawner: Spawner) {
 
         info!("advertising done!");
 
-        // Set the battery level to 80%.
-        server.bas.battery_level_set(&80u8).unwrap();
+        // Set the battery level to 12%.
+        server.bas.battery_level_set(&12u8).unwrap();
 
         let notify_fut = notify_value(&server, &conn);
 
