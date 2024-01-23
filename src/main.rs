@@ -9,7 +9,7 @@ use core::mem;
 
 use defmt::{info, *};
 use embassy_executor::Spawner;
-use embassy_nrf::interrupt::Priority;
+use embassy_nrf::interrupt::{Interrupt, InterruptExt, Priority};
 use embassy_time::{Duration, Timer};
 use futures::future::{select, Either};
 use futures::pin_mut;
@@ -66,10 +66,26 @@ async fn notify_value<'a>(server: &'a Server, connection: &'a Connection) {
 async fn main(spawner: Spawner) {
     info!("Hello World!");
 
+    // SoftDeviceが割り込み優先度P0, P1, P4を使用するので、それ以外を使用する
+    // GPIO, TimerはP2を使用する
+    // その他必要な割り込みがある場合は、明示的に優先度を設定する。初期値はP0では動作しない。
     let mut config = embassy_nrf::config::Config::default();
     config.gpiote_interrupt_priority = Priority::P2;
     config.time_interrupt_priority = Priority::P2;
-    let p = embassy_nrf::init(config);
+    // ペリフェラルの初期化
+    let _p = embassy_nrf::init(config);
+
+    // 割り込みの優先度をprintする
+    for num in 0..48 {
+        let interrupt = unsafe { mem::transmute::<u16, Interrupt>(num) };
+        let is_enabled = InterruptExt::is_enabled(interrupt);
+        let priority = InterruptExt::get_priority(interrupt);
+
+        info!(
+            "Interrupt {}: Enabled = {}, Priority = {}",
+            num, is_enabled, priority
+        );
+    }
 
     let config = nrf_softdevice::Config {
         clock: Some(raw::nrf_clock_lf_cfg_t {
