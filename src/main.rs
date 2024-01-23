@@ -70,6 +70,7 @@ async fn main(spawner: Spawner) {
     let mut config = embassy_nrf::config::Config::default();
     config.gpiote_interrupt_priority = Priority::P2;
     config.time_interrupt_priority = Priority::P2;
+
     // ペリフェラルの初期化
     let _p = embassy_nrf::init(config);
 
@@ -82,6 +83,16 @@ async fn main(spawner: Spawner) {
         info!(
             "Interrupt {}: Enabled = {}, Priority = {}",
             num, is_enabled, priority
+        );
+
+        // true: 割り込み優先度がP0, P1, P4のいずれか
+        let pr =
+            (priority == Priority::P0) ^ (priority == Priority::P1) ^ (priority == Priority::P4);
+        // 有効な割り込みがP0, P1, P4の場合にはエラー
+        let invalid_priority = pr && is_enabled;
+        defmt::assert!(
+            !invalid_priority,
+            "Invalid interrupt priority: Change a priority other than P0, P1, or P4. Interrupt number: {}", num
         );
     }
 
