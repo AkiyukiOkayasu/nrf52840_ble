@@ -165,11 +165,5 @@ async fn main(spawner: Spawner) {
                 info!("gatt")
             }
         };
-
-        // if let Err(e) = server.foo.foo_notify(&conn, &(123)) {
-        //     info!("send notification error: {:?}", e);
-        // }
-
-        // info!("gatt_server run exited with error: {:?}", error);
     }
 }
