@@ -38,6 +38,7 @@ nrf-softdevice = { version = "0.1.0", features = [
     "ble-gatt-server",
 ] }
 nrf-softdevice-s140 = "0.1.2"
+futures = { version = "0.3.29", default-features = false }
 
 [profile.release]
 # defmtの<invalid location: defmt frame-index: xxx>といったエラーを抑制するためにdebugレベルを上げる。

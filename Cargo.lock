@@ -729,6 +729,7 @@ dependencies = [
  "embassy-nrf",
  "embassy-sync",
  "embassy-time",
+ "futures",
  "nrf-softdevice",
  "nrf-softdevice-s140",
  "panic-probe",
