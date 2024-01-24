@@ -31,16 +31,18 @@ struct BatteryService {
     battery_level: u8,
 }
 
-#[nrf_softdevice::gatt_service(uuid = "9e7312e0-2354-11eb-9f10-fbc30a62cf38")]
-struct FooService {
-    #[characteristic(uuid = "9e7312e0-2354-11eb-9f10-fbc30a63cf38", read, notify)]
-    foo: u16,
+/// BLE-MIDI
+#[nrf_softdevice::gatt_service(uuid = "03b80e5a-ede8-4b33-a751-6ce34ec4c700")] //BLE-MIDIのService UUID
+struct BleMidiService {
+    // BLE-MIDIのCharacteristic UUID
+    #[characteristic(uuid = "7772e5db-3868-4112-a1a9-f2669d106bf3", read, notify, write)]
+    packet: [u8; 5],
 }
 
 #[nrf_softdevice::gatt_server]
 struct Server {
     bas: BatteryService,
-    foo: FooService,
+    midi: BleMidiService,
 }
 
 /// BatteryLevelのnotifyを1秒ごとに行う。
@@ -157,7 +159,8 @@ async fn main(spawner: Spawner) {
     static SCAN_DATA: LegacyAdvertisementPayload = LegacyAdvertisementBuilder::new()
         .services_128(
             ServiceList::Complete,
-            &[0x9e7312e0_2354_11eb_9f10_fbc30a62cf38_u128.to_le_bytes()],
+            // BLE-MIDIのService UUID
+            &[0x03b80e5a_ede8_4b33_a751_6ce34ec4c700_u128.to_le_bytes()],
         )
         .build();
 
@@ -186,9 +189,12 @@ async fn main(spawner: Spawner) {
                     info!("battery notifications: {}", notifications)
                 }
             },
-            ServerEvent::Foo(e) => match e {
-                FooServiceEvent::FooCccdWrite { notifications } => {
-                    info!("foo notifications: {}", notifications)
+            ServerEvent::Midi(e) => match e {
+                BleMidiServiceEvent::PacketWrite(p) => {
+                    info!("BLE-MIDI: Wrote packet: {}", p)
+                }
+                BleMidiServiceEvent::PacketCccdWrite { notifications } => {
+                    info!("BLE-MIDI: Notifications: {}", notifications)
                 }
             },
         });
