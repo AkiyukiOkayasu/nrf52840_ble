@@ -9,6 +9,7 @@ use core::mem;
 
 use defmt::{info, *};
 use embassy_executor::Spawner;
+use embassy_nrf::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use embassy_nrf::interrupt::{Interrupt, InterruptExt, Priority};
 use embassy_time::{Duration, Timer};
 use futures::future::{select, Either};
@@ -60,6 +61,18 @@ async fn notify_battery_level<'a>(server: &'a Server, connection: &'a Connection
     }
 }
 
+/// 秋月電子通商のnRF52840BLEマイコンボードのオンボードLEDを500msごとに点滅させる。
+#[embassy_executor::task]
+async fn led_blink(led: AnyPin) {
+    //p.P1_09
+    let mut led = Output::new(led, Level::Low, OutputDrive::Standard);
+
+    loop {
+        led.toggle();
+        Timer::after(Duration::from_millis(500)).await;
+    }
+}
+
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     info!("Hello World!");
@@ -72,7 +85,7 @@ async fn main(spawner: Spawner) {
     config.time_interrupt_priority = Priority::P2;
 
     // ペリフェラルの初期化
-    let _p = embassy_nrf::init(config);
+    let p = embassy_nrf::init(config);
 
     // 割り込みの優先度をprintする
     for num in 0..48 {
@@ -133,6 +146,7 @@ async fn main(spawner: Spawner) {
     let sd = Softdevice::enable(&config);
     let server = unwrap!(Server::new(sd));
     unwrap!(spawner.spawn(softdevice_task(sd)));
+    spawner.spawn(led_blink(p.P1_09.degrade())).unwrap();
 
     static ADV_DATA: LegacyAdvertisementPayload = LegacyAdvertisementBuilder::new()
         .flags(&[Flag::GeneralDiscovery, Flag::LE_Only])
