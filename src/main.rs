@@ -51,10 +51,9 @@ async fn notify_battery_level<'a>(server: &'a Server, connection: &'a Connection
         let mut battery_level = server.bas.battery_level_get().unwrap();
         battery_level += 1;
         server.bas.battery_level_set(&battery_level).unwrap();
-        info!("notify_BatteryLevel: {}", battery_level);
 
         match server.bas.battery_level_notify(connection, &battery_level) {
-            Ok(_) => info!("Battery adc_raw_value: {=u8}", &battery_level),
+            Ok(_) => info!("Notified battery level: {=u8}", &battery_level),
             Err(err) => info!("Battery notification error: {:?}", err),
         };
 
