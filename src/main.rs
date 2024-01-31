@@ -64,7 +64,7 @@ async fn notify_battery_level<'a>(server: &'a Server, connection: &'a Connection
 
 /// 秋月電子通商のnRF52840BLEマイコンボードのオンボードLEDを500msごとに点滅させる。
 #[embassy_executor::task]
-async fn led_blink(led: AnyPin) {
+async fn led_blink(led: AnyPin) -> ! {
     //p.P1_09
     let mut led = Output::new(led, Level::Low, OutputDrive::Standard);
 
