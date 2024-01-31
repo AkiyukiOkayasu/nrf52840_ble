@@ -19,6 +19,7 @@ use nrf_softdevice::ble::advertisement_builder::{
 };
 use nrf_softdevice::ble::{gatt_server, peripheral, Connection};
 use nrf_softdevice::{raw, Softdevice};
+use static_cell::StaticCell;
 
 #[embassy_executor::task]
 async fn softdevice_task(sd: &'static Softdevice) -> ! {

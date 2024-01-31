@@ -40,6 +40,7 @@ nrf-softdevice = { version = "0.1.0", features = [
 ] }
 nrf-softdevice-s140 = "0.1.2"
 futures = { version = "0.3.30", default-features = false }
+static_cell = "2.0.0"
 
 [profile.release]
 # defmtの<invalid location: defmt frame-index: xxx>といったエラーを抑制するためにdebugレベルを上げる。
