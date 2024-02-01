@@ -2,7 +2,9 @@
 #![no_main]
 
 use defmt_rtt as _; // global logger
-use embassy_nrf as _; // time driver
+use embassy_nrf as _;
+use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
+// time driver
 use panic_probe as _; // panic handler
 
 use core::mem;
@@ -11,6 +13,7 @@ use defmt::{info, *};
 use embassy_executor::Spawner;
 use embassy_nrf::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use embassy_nrf::interrupt::{Interrupt, InterruptExt, Priority};
+use embassy_sync::channel::{Channel, Sender};
 use embassy_time::{Duration, Timer};
 use futures::future::{select, Either};
 use futures::pin_mut;
@@ -22,6 +25,7 @@ use nrf_softdevice::{raw, Softdevice};
 use static_cell::StaticCell;
 
 static SERVER: StaticCell<Server> = StaticCell::new();
+static CHANNEL: Channel<ThreadModeRawMutex, u8, 64> = Channel::new();
 
 /// SoftDeviceは、BLEの処理を行うために必要なタスク。
 /// Softdeviceのenable後、最初に実行する必要がある。
@@ -126,38 +130,52 @@ async fn led_blink(led: AnyPin) -> ! {
     }
 }
 
-//
+// BLE-MIDIのパケットを送信する非同期関数
 async fn ble_midi<'a>(server: &'a Server, conn: &'a Connection) {
     loop {
+        let note_number = CHANNEL.receive().await;
         match server.midi.packet_notify(
             conn,
             &[
-                0x80, // Header byte. Timestamp is not implemented
-                0x80, // Timestamp byte. Timestamp is not implemented
-                0x90, // MIDI status byte. Note on (1ch)
-                60,   // Note number
-                127,  // Velocity
+                0x80,        // Header byte. Timestamp is not implemented
+                0x80,        // Timestamp byte. Timestamp is not implemented
+                0x90,        // MIDI status byte. Note on (1ch)
+                note_number, // Note number
+                127,         // Velocity
             ],
         ) {
             Ok(_) => info!("Notified MIDI note-on packet"),
             Err(err) => info!("MIDI packet notification error: {:?}", err),
         }
 
-        Timer::after(Duration::from_secs(1)).await;
+        Timer::after(Duration::from_millis(100)).await;
         match server.midi.packet_notify(
             conn,
             &[
-                0x80, // Header byte. Timestamp is not implemented
-                0x80, // Timestamp byte. Timestamp is not implemented
-                0x80, // MIDI status byte. Note off (1ch)
-                60,   // Note number
-                0,    // Velocity
+                0x80,        // Header byte. Timestamp is not implemented
+                0x80,        // Timestamp byte. Timestamp is not implemented
+                0x80,        // MIDI status byte. Note off (1ch)
+                note_number, // Note number
+                0,           // Velocity
             ],
         ) {
             Ok(_) => info!("Notified MIDI note-off packet"),
             Err(err) => info!("MIDI packet notification error: {:?}", err),
         }
-        Timer::after(Duration::from_secs(1)).await;
+        Timer::after(Duration::from_millis(100)).await;
+    }
+}
+
+// MIDIノートを周期的に送信するタスク
+// スイッチによる割り込みのつもりで、2つのタスクを作成する。
+#[embassy_executor::task(pool_size = 2)]
+async fn note_sender(sender: Sender<'static, ThreadModeRawMutex, u8, 64>, delay: Duration) {
+    let notes = [60, 62, 64, 67, 69, 72];
+    let mut i = 0;
+    loop {
+        sender.send(notes[i]).await;
+        i = (i + 1) % notes.len();
+        Timer::after(delay).await;
     }
 }
 
@@ -240,4 +258,10 @@ async fn main(spawner: Spawner) {
     unwrap!(spawner.spawn(softdevice_task(sd)));
     spawner.spawn(led_blink(p.P1_09.degrade())).unwrap();
     spawner.spawn(gatt(server, sd)).unwrap();
+    spawner
+        .spawn(note_sender(CHANNEL.sender(), Duration::from_millis(750)))
+        .unwrap();
+    spawner
+        .spawn(note_sender(CHANNEL.sender(), Duration::from_millis(500)))
+        .unwrap();
 }
