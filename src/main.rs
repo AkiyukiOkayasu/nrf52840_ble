@@ -170,7 +170,7 @@ async fn ble_midi<'a>(server: &'a Server, conn: &'a Connection) {
 // スイッチによる割り込みのつもりで、2つのタスクを作成する。
 #[embassy_executor::task(pool_size = 2)]
 async fn note_sender(sender: Sender<'static, ThreadModeRawMutex, u8, 64>, delay: Duration) {
-    let notes = [60, 62, 64, 67, 69, 72];
+    let notes = [48, 55, 60, 62, 64, 67, 69, 72, 74, 76];
     let mut i = 0;
     loop {
         sender.send(notes[i]).await;
@@ -259,9 +259,9 @@ async fn main(spawner: Spawner) {
     spawner.spawn(led_blink(p.P1_09.degrade())).unwrap();
     spawner.spawn(gatt(server, sd)).unwrap();
     spawner
-        .spawn(note_sender(CHANNEL.sender(), Duration::from_millis(750)))
+        .spawn(note_sender(CHANNEL.sender(), Duration::from_millis(150)))
         .unwrap();
     spawner
-        .spawn(note_sender(CHANNEL.sender(), Duration::from_millis(500)))
+        .spawn(note_sender(CHANNEL.sender(), Duration::from_millis(100)))
         .unwrap();
 }
