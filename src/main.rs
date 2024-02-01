@@ -125,8 +125,8 @@ async fn notify_battery_level<'a>(server: &'a Server, connection: &'a Connection
             Err(err) => info!("Battery notification error: {:?}", err),
         };
 
-        // Sleep for one second.
-        Timer::after(Duration::from_secs(1)).await;
+        // Sleep for 10 seconds.
+        Timer::after(Duration::from_secs(10)).await;
     }
 }
 
