@@ -58,9 +58,6 @@ async fn gatt(server: &'static Server, sd: &'static Softdevice) -> ! {
 
         info!("advertising done!");
 
-        // Set the battery level to 12%.
-        server.bas.battery_level_set(&12u8).unwrap();
-
         let notify_battery_level_future = notify_battery_level(&server, &conn);
 
         // Run the GATT server on the connection. This returns when the connection gets disconnected.
@@ -120,8 +117,7 @@ struct Server {
 /// BatteryLevelのnotifyを1秒ごとに行う。
 async fn notify_battery_level<'a>(server: &'a Server, connection: &'a Connection) {
     loop {
-        let mut battery_level = server.bas.battery_level_get().unwrap();
-        battery_level += 1;
+        let battery_level = server.bas.battery_level_get().unwrap();
         server.bas.battery_level_set(&battery_level).unwrap();
 
         match server.bas.battery_level_notify(connection, &battery_level) {
@@ -218,6 +214,10 @@ async fn main(spawner: Spawner) {
 
     let sd = Softdevice::enable(&config);
     let server: &'static Server = SERVER.init(unwrap!(Server::new(sd)));
+
+    //バッテリーレベルを100%に設定
+    server.bas.battery_level_set(&100u8).unwrap();
+
     unwrap!(spawner.spawn(softdevice_task(sd)));
     spawner.spawn(led_blink(p.P1_09.degrade())).unwrap();
     spawner.spawn(gatt(server, sd)).unwrap();
