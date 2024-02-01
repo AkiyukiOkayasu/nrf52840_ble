@@ -58,7 +58,7 @@ async fn gatt(server: &'static Server, sd: &'static Softdevice) -> ! {
 
         info!("advertising done!");
 
-        let notify_battery_level_future = notify_battery_level(&server, &conn);
+        let ble_midi_future = ble_midi(&server, &conn);
 
         // Run the GATT server on the connection. This returns when the connection gets disconnected.
         //
@@ -80,12 +80,12 @@ async fn gatt(server: &'static Server, sd: &'static Softdevice) -> ! {
             },
         });
 
-        pin_mut!(notify_battery_level_future);
         pin_mut!(gatt_future);
+        pin_mut!(ble_midi_future);
 
-        let _ = match select(notify_battery_level_future, gatt_future).await {
+        let _ = match select(ble_midi_future, gatt_future).await {
             Either::Left((_, _)) => {
-                info!("notify")
+                info!("BLE-MIDI")
             }
             Either::Right((_, _)) => {
                 info!("gatt")
@@ -114,22 +114,6 @@ struct Server {
     midi: BleMidiService,
 }
 
-/// BatteryLevelのnotifyを1秒ごとに行う。
-async fn notify_battery_level<'a>(server: &'a Server, connection: &'a Connection) {
-    loop {
-        let battery_level = server.bas.battery_level_get().unwrap();
-        server.bas.battery_level_set(&battery_level).unwrap();
-
-        match server.bas.battery_level_notify(connection, &battery_level) {
-            Ok(_) => info!("Notified battery level: {=u8}", &battery_level),
-            Err(err) => info!("Battery notification error: {:?}", err),
-        };
-
-        // Sleep for 10 seconds.
-        Timer::after(Duration::from_secs(10)).await;
-    }
-}
-
 /// 秋月電子通商のnRF52840BLEマイコンボードのオンボードLEDを500msごとに点滅させる。
 #[embassy_executor::task]
 async fn led_blink(led: AnyPin) -> ! {
@@ -139,6 +123,41 @@ async fn led_blink(led: AnyPin) -> ! {
     loop {
         led.toggle();
         Timer::after(Duration::from_millis(500)).await;
+    }
+}
+
+//
+async fn ble_midi<'a>(server: &'a Server, conn: &'a Connection) {
+    loop {
+        match server.midi.packet_notify(
+            conn,
+            &[
+                0x80, // Header byte. Timestamp is not implemented
+                0x80, // Timestamp byte. Timestamp is not implemented
+                0x90, // MIDI status byte. Note on (1ch)
+                60,   // Note number
+                127,  // Velocity
+            ],
+        ) {
+            Ok(_) => info!("Notified MIDI note-on packet"),
+            Err(err) => info!("MIDI packet notification error: {:?}", err),
+        }
+
+        Timer::after(Duration::from_secs(1)).await;
+        match server.midi.packet_notify(
+            conn,
+            &[
+                0x80, // Header byte. Timestamp is not implemented
+                0x80, // Timestamp byte. Timestamp is not implemented
+                0x80, // MIDI status byte. Note off (1ch)
+                60,   // Note number
+                0,    // Velocity
+            ],
+        ) {
+            Ok(_) => info!("Notified MIDI note-off packet"),
+            Err(err) => info!("MIDI packet notification error: {:?}", err),
+        }
+        Timer::after(Duration::from_secs(1)).await;
     }
 }
 
