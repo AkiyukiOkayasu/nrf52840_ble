@@ -11,20 +11,30 @@ use defmt::{info, *};
 use embassy_executor::Spawner;
 use embassy_nrf::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use embassy_nrf::interrupt::{Interrupt, InterruptExt, Priority};
+use embassy_nrf::pdm::{self, Frequency, OperationMode, Pdm, Ratio, SamplerState};
+use embassy_nrf::peripherals::PDM;
+use embassy_nrf::{bind_interrupts, peripherals};
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_sync::channel::{Channel, Sender};
 use embassy_time::{Duration, Timer};
+use fixed::types::I7F1;
 use futures::future::{select, Either};
 use futures::pin_mut;
+use microfft::real::rfft_1024;
 use nrf_softdevice::ble::advertisement_builder::{
     Flag, LegacyAdvertisementBuilder, LegacyAdvertisementPayload, ServiceList, ServiceUuid16,
 };
 use nrf_softdevice::ble::{gatt_server, peripheral, Connection};
 use nrf_softdevice::{raw, Softdevice};
+use num_integer::Roots;
 use static_cell::StaticCell;
 
 static SERVER: StaticCell<Server> = StaticCell::new();
 static CHANNEL: Channel<ThreadModeRawMutex, u8, 64> = Channel::new();
+
+bind_interrupts!(struct Irqs {
+    PDM => pdm::InterruptHandler<peripherals::PDM>;
+});
 
 /// SoftDeviceは、BLEの処理を行うために必要なタスク。
 /// Softdeviceのenable後、最初に実行する必要がある。
