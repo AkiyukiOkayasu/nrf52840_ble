@@ -334,7 +334,7 @@ async fn main(spawner: Spawner) {
     //バッテリーレベルを100%に設定
     server.bas.battery_level_set(&100u8).unwrap();
 
-    unwrap!(spawner.spawn(softdevice_task(sd)));
+    spawner.spawn(softdevice_task(sd)).unwrap();
     spawner.spawn(led_blink(p.P1_09.degrade())).unwrap();
     spawner.spawn(gatt(server, sd)).unwrap();
     spawner
