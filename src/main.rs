@@ -2,9 +2,7 @@
 #![no_main]
 
 use defmt_rtt as _; // global logger
-use embassy_nrf as _;
-use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
-// time driver
+use embassy_nrf as _; // time driver
 use panic_probe as _; // panic handler
 
 use core::mem;
@@ -13,6 +11,7 @@ use defmt::{info, *};
 use embassy_executor::Spawner;
 use embassy_nrf::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use embassy_nrf::interrupt::{Interrupt, InterruptExt, Priority};
+use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_sync::channel::{Channel, Sender};
 use embassy_time::{Duration, Timer};
 use futures::future::{select, Either};
