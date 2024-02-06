@@ -5,6 +5,7 @@ use defmt_rtt as _; // global logger
 use embassy_nrf as _; // time driver
 use panic_probe as _; // panic handler
 
+use core::cmp::Ordering;
 use core::mem;
 
 use defmt::{info, *};
@@ -193,6 +194,70 @@ async fn note_sender(sender: Sender<'static, ThreadModeRawMutex, u8, 64>, delay:
     }
 }
 
+/// PDMマイクから音声を取得し、FFTを行い、ピーク周波数とピーク振幅を表示するタスク
+/// # Arguments
+/// * `pdm` - PDMのペリフェラル
+/// * `pdm_clk` - PDMのクロックピン
+/// * `pdm_data` - PDMのデータピン
+#[embassy_executor::task]
+async fn pdm_mic(pdm: PDM, pdm_clk: AnyPin, pdm_data: AnyPin) {
+    let mut pdm_config = pdm::Config::default();
+    pdm_config.frequency = Frequency::_1280K; // 16 kHz sample rate
+    pdm_config.ratio = Ratio::RATIO80;
+    pdm_config.operation_mode = OperationMode::Mono;
+    pdm_config.gain_left = I7F1::from_bits(5); //2.5dB
+    let mut pdm = Pdm::new(pdm, Irqs, pdm_clk, pdm_data, pdm_config);
+
+    let mut bufs = [[0; 1024]; 2];
+
+    pdm.run_task_sampler(&mut bufs, move |buf| {
+        // NOTE: It is important that the time spent within this callback
+        // does not exceed the time taken to acquire the 1500 samples we
+        // have in this example, which would be 10us + 2us per
+        // sample * 1500 = 18ms. You need to measure the time taken here
+        // and set the sample buffer size accordingly. Exceeding this
+        // time can lead to the peripheral re-writing the other buffer.
+        let mean = (buf.iter().map(|v| i32::from(*v)).sum::<i32>() / buf.len() as i32) as i16;
+        let (peak_freq_index, peak_mag) = fft_peak_freq(&buf);
+        let peak_freq = peak_freq_index * 16000 / buf.len();
+        info!(
+            "{} samples, min {=i16}, max {=i16}, mean {=i16}, AC RMS {=i16}, peak {} @ {} Hz",
+            buf.len(),
+            buf.iter().min().unwrap(),
+            buf.iter().max().unwrap(),
+            mean,
+            (buf.iter()
+                .map(|v| i32::from(*v - mean).pow(2))
+                .fold(0i32, |a, b| a.saturating_add(b))
+                / buf.len() as i32)
+                .sqrt() as i16,
+            peak_mag,
+            peak_freq,
+        );
+        SamplerState::Sampled
+    })
+    .await
+    .unwrap();
+}
+
+fn fft_peak_freq(input: &[i16; 1024]) -> (usize, u32) {
+    let mut f = [0f32; 1024];
+    for i in 0..input.len() {
+        f[i] = (input[i] as f32) / 32768.0;
+    }
+    // N.B. rfft_1024 does the FFT in-place so result is actually also a reference to f.
+    let result = rfft_1024(&mut f);
+    result[0].im = 0.0;
+
+    result
+        .iter()
+        .map(|c| c.norm_sqr())
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+        .map(|(i, v)| (i, ((v * 32768.0) as u32).sqrt()))
+        .unwrap()
+}
+
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     info!("Hello World!");
@@ -277,5 +342,8 @@ async fn main(spawner: Spawner) {
         .unwrap();
     spawner
         .spawn(note_sender(CHANNEL.sender(), Duration::from_millis(100)))
+        .unwrap();
+    spawner
+        .spawn(pdm_mic(p.PDM, p.P0_24.degrade(), p.P0_25.degrade()))
         .unwrap();
 }
