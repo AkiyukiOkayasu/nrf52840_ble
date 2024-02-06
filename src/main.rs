@@ -128,6 +128,8 @@ struct Server {
 }
 
 /// 秋月電子通商のnRF52840BLEマイコンボードのオンボードLEDを500msごとに点滅させる。
+/// # Arguments
+/// * `led` - LEDを接続したGPIOピン
 #[embassy_executor::task]
 async fn led_blink(led: AnyPin) -> ! {
     //p.P1_09
@@ -139,7 +141,10 @@ async fn led_blink(led: AnyPin) -> ! {
     }
 }
 
-// BLE-MIDIのパケットを送信する非同期関数
+/// BLE-MIDIのパケットを送信する非同期関数
+/// # Arguments
+/// * `server` - GATTサーバー
+/// * `conn` - BLE接続
 async fn ble_midi<'a>(server: &'a Server, conn: &'a Connection) {
     loop {
         let note_number = CHANNEL.receive().await;
@@ -175,8 +180,8 @@ async fn ble_midi<'a>(server: &'a Server, conn: &'a Connection) {
     }
 }
 
-// MIDIノートを周期的に送信するタスク
-// スイッチによる割り込みのつもりで、2つのタスクを作成する。
+/// MIDIノートを周期的に送信するタスク
+/// スイッチによる割り込みのつもりで、2つのタスクを作成する。
 #[embassy_executor::task(pool_size = 2)]
 async fn note_sender(sender: Sender<'static, ThreadModeRawMutex, u8, 64>, delay: Duration) {
     let notes = [48, 55, 60, 62, 64, 67, 69, 72, 74, 76];
