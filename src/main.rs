@@ -45,7 +45,6 @@ async fn softdevice_task(sd: &'static Softdevice) -> ! {
 }
 
 /// GATTのタスク
-/// loopになっているのはBLE接続が切れた場合に再度接続するため。
 #[embassy_executor::task]
 async fn gatt(server: &'static Server, sd: &'static Softdevice) -> ! {
     static ADV_DATA: LegacyAdvertisementPayload = LegacyAdvertisementBuilder::new()
@@ -62,6 +61,7 @@ async fn gatt(server: &'static Server, sd: &'static Softdevice) -> ! {
         )
         .build();
 
+    // loopになっているのはBLE接続が切れた場合に再度接続するため。
     loop {
         let config = peripheral::Config::default();
         let adv = peripheral::ConnectableAdvertisement::ScannableUndirected {
@@ -94,6 +94,7 @@ async fn gatt(server: &'static Server, sd: &'static Softdevice) -> ! {
             },
         });
 
+        // future変数をmoveさせないためにpin_mut!を使用する
         pin_mut!(gatt_future);
         pin_mut!(ble_midi_future);
 
@@ -108,6 +109,7 @@ async fn gatt(server: &'static Server, sd: &'static Softdevice) -> ! {
     }
 }
 
+/// BLEのBattery Service
 #[nrf_softdevice::gatt_service(uuid = "180f")]
 struct BatteryService {
     #[characteristic(uuid = "2a19", read, notify)]
@@ -183,6 +185,9 @@ async fn ble_midi<'a>(server: &'a Server, conn: &'a Connection) {
 
 /// MIDIノートを周期的に送信するタスク
 /// スイッチによる割り込みのつもりで、2つのタスクを作成する。
+/// # Arguments
+/// * `sender` - MIDIノートを送信するためのチャンネル
+/// * `delay` - MIDIノートを送信する間隔
 #[embassy_executor::task(pool_size = 2)]
 async fn note_sender(sender: Sender<'static, ThreadModeRawMutex, u8, 64>, delay: Duration) {
     let notes = [48, 55, 60, 62, 64, 67, 69, 72, 74, 76];
@@ -240,6 +245,7 @@ async fn pdm_mic(pdm: PDM, pdm_clk: AnyPin, pdm_data: AnyPin) {
     .unwrap();
 }
 
+/// FFTを行い、ピーク周波数とピーク振幅を返す関数
 fn fft_peak_freq(input: &[i16; 1024]) -> (usize, u32) {
     let mut f = [0f32; 1024];
     for i in 0..input.len() {
@@ -294,6 +300,7 @@ async fn main(spawner: Spawner) {
         );
     }
 
+    // SoftDeviceの設定
     let config = nrf_softdevice::Config {
         clock: Some(raw::nrf_clock_lf_cfg_t {
             source: raw::NRF_CLOCK_LF_SRC_RC as u8,
@@ -334,6 +341,7 @@ async fn main(spawner: Spawner) {
     //バッテリーレベルを100%に設定
     server.bas.battery_level_set(&100u8).unwrap();
 
+    // Embassyのtaskを実行
     spawner.spawn(softdevice_task(sd)).unwrap();
     spawner.spawn(led_blink(p.P1_09.degrade())).unwrap();
     spawner.spawn(gatt(server, sd)).unwrap();
